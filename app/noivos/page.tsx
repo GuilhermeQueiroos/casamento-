@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 const SENHA_ADMIN = "casamento2025";
@@ -26,7 +27,7 @@ type Presente = {
   reservado_por: string;
 };
 
-export default function Admin() {
+export default function Noivos() {
   const [authed, setAuthed] = useState(false);
   const [senha, setSenha] = useState("");
   const [aba, setAba] = useState<"config" | "convidados" | "presentes">(
@@ -105,20 +106,34 @@ export default function Admin() {
 
   if (!authed) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          <h1 className="font-playfair text-3xl text-stone-700 text-center mb-8">
-            Painel Admin
+      <main className="min-h-screen flex items-center justify-center px-6 bg-stone-50">
+        <div className="w-full max-w-sm text-center">
+          <p className="font-lato text-xs tracking-[0.4em] uppercase text-stone-400 mb-4">
+            Área restrita
+          </p>
+          <h1 className="font-playfair text-4xl text-stone-700 mb-2">
+            Guilherme & Deborah
           </h1>
+          <p className="font-lato text-sm text-stone-400 mb-10">
+            Área dos noivos
+          </p>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-px flex-1 bg-stone-200" />
+            <span className="text-stone-300 text-sm">✦</span>
+            <div className="h-px flex-1 bg-stone-200" />
+          </div>
           <input
             type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             onKeyDown={(e) =>
-              e.key === "Enter" && senha === SENHA_ADMIN && setAuthed(true)
+              e.key === "Enter" &&
+              (senha === SENHA_ADMIN
+                ? setAuthed(true)
+                : alert("Senha incorreta"))
             }
             placeholder="Senha"
-            className="w-full border border-stone-200 px-4 py-3 font-lato text-stone-700 focus:outline-none focus:border-stone-400 bg-transparent mb-4"
+            className="w-full border border-stone-200 px-4 py-3 font-lato text-stone-700 focus:outline-none focus:border-stone-400 bg-transparent mb-4 text-center tracking-widest"
           />
           <button
             onClick={() =>
@@ -128,6 +143,12 @@ export default function Admin() {
           >
             Entrar
           </button>
+          <Link
+            href="/"
+            className="block mt-6 font-lato text-xs text-stone-300 hover:text-stone-500 tracking-widest uppercase transition-colors"
+          >
+            ← Voltar ao site
+          </Link>
         </div>
       </main>
     );
@@ -142,7 +163,9 @@ export default function Admin() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-12">
       <div className="flex items-center justify-between mb-10">
-        <h1 className="font-playfair text-3xl text-stone-700">Painel Admin</h1>
+        <h1 className="font-playfair text-3xl text-stone-700">
+          Área dos Noivos
+        </h1>
         <button
           onClick={() => setAuthed(false)}
           className="text-xs text-stone-400 hover:text-stone-600 tracking-widest uppercase"
@@ -263,7 +286,7 @@ export default function Admin() {
                   </p>
                   {c.mensagem && (
                     <p className="font-lato text-xs text-stone-400 italic mt-1">
-                      &ldquo;{c.mensagem}&rdquo;
+                      {c.mensagem}
                     </p>
                   )}
                 </div>
@@ -289,7 +312,6 @@ export default function Admin() {
       {/* Presentes */}
       {aba === "presentes" && (
         <div>
-          {/* Formulário novo presente */}
           <div className="border border-stone-200 p-6 mb-8">
             <p className="font-lato text-xs tracking-widest uppercase text-stone-400 mb-4">
               Adicionar presente
@@ -342,8 +364,6 @@ export default function Admin() {
               Adicionar
             </button>
           </div>
-
-          {/* Lista */}
           <div className="space-y-2">
             {presentes.map((p) => (
               <div

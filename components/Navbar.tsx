@@ -6,10 +6,11 @@ import { useState } from "react";
 const links = [
   { href: "/", label: "Início" },
   { href: "/historia", label: "Nossa História" },
-  { href: "/evento", label: "O Evento" },
+  { href: "/evento", label: "Evento" },
   { href: "/galeria", label: "Galeria" },
   { href: "/presentes", label: "Presentes" },
-  { href: "/rsvp", label: "Confirmar Presença" },
+  { href: "/rsvp", label: "Confirmar" },
+  { href: "/noivos", label: "♥ Noivos" },
 ];
 
 export default function Navbar() {
