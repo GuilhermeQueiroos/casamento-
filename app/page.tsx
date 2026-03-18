@@ -42,6 +42,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Botão discreto para área dos noivos */}
+      <Link
+        href="/noivos"
+        className="mt-6 font-lato text-xs text-stone-300 hover:text-stone-500 tracking-widest transition-colors"
+      >
+        área dos noivos
+      </Link>
+
       {/* Divisor */}
       <div className="flex items-center justify-center gap-4 py-16">
         <div className="h-px w-24 bg-stone-300" />
