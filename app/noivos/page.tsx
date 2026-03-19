@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -42,8 +42,32 @@ export default function Noivos() {
     preco: "",
     link_compra: "",
   });
+  const [novoConvidado, setNovoConvidado] = useState({
+    nome: "",
+    email: "",
+    telefone: "",
+    acompanhantes: 0,
+    confirmado: true,
+  });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const recarregar = useCallback(async () => {
+    const [{ data: c, error: ec }, { data: p, error: ep }] = await Promise.all([
+      supabase
+        .from("convidados")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("presentes")
+        .select("*")
+        .order("created_at", { ascending: false }),
+    ]);
+    console.log("convidados:", c, "erro:", ec);
+    console.log("presentes:", p, "erro:", ep);
+    setConvidados(c || []);
+    setPresentes(p || []);
+  }, []);
 
   useEffect(() => {
     if (!authed) return;
@@ -57,16 +81,8 @@ export default function Noivos() {
         });
         setConfig(cfg);
       });
-    supabase
-      .from("convidados")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setConvidados(data || []));
-    supabase
-      .from("presentes")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setPresentes(data || []));
+    recarregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
   async function salvarConfig() {
@@ -77,6 +93,22 @@ export default function Noivos() {
     setSalvando(false);
     setMsg("Configurações salvas!");
     setTimeout(() => setMsg(""), 3000);
+  }
+
+  async function adicionarConvidado() {
+    if (!novoConvidado.nome) return;
+    const { data } = await supabase
+      .from("convidados")
+      .insert([novoConvidado])
+      .select();
+    if (data) setConvidados((prev) => [data[0], ...prev]);
+    setNovoConvidado({
+      nome: "",
+      email: "",
+      telefone: "",
+      acompanhantes: 0,
+      confirmado: true,
+    });
   }
 
   async function adicionarPresente() {
@@ -163,9 +195,17 @@ export default function Noivos() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-12">
       <div className="flex items-center justify-between mb-10">
-        <h1 className="font-playfair text-3xl text-stone-700">
-          Área dos Noivos
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="font-playfair text-3xl text-stone-700">
+            Área dos Noivos
+          </h1>
+          <button
+            onClick={recarregar}
+            className="text-xs text-stone-400 hover:text-stone-600 tracking-widest uppercase border border-stone-200 px-3 py-1 hover:border-stone-400 transition-colors"
+          >
+            ↻ Atualizar
+          </button>
+        </div>
         <button
           onClick={() => setAuthed(false)}
           className="text-xs text-stone-400 hover:text-stone-600 tracking-widest uppercase"
@@ -266,7 +306,79 @@ export default function Noivos() {
       {/* Convidados */}
       {aba === "convidados" && (
         <div>
-          <p className="font-lato text-sm text-stone-400 mb-6">
+          <div className="border border-stone-200 p-6 mb-8">
+            <p className="font-lato text-xs tracking-widest uppercase text-stone-400 mb-4">
+              Adicionar convidado
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                value={novoConvidado.nome}
+                onChange={(e) =>
+                  setNovoConvidado({ ...novoConvidado, nome: e.target.value })
+                }
+                placeholder="Nome completo *"
+                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-transparent col-span-2"
+              />
+              <input
+                value={novoConvidado.email}
+                onChange={(e) =>
+                  setNovoConvidado({ ...novoConvidado, email: e.target.value })
+                }
+                placeholder="E-mail"
+                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-transparent"
+              />
+              <input
+                value={novoConvidado.telefone}
+                onChange={(e) =>
+                  setNovoConvidado({
+                    ...novoConvidado,
+                    telefone: e.target.value,
+                  })
+                }
+                placeholder="Telefone"
+                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-transparent"
+              />
+              <select
+                value={novoConvidado.acompanhantes}
+                onChange={(e) =>
+                  setNovoConvidado({
+                    ...novoConvidado,
+                    acompanhantes: Number(e.target.value),
+                  })
+                }
+                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-stone-50"
+              >
+                {[0, 1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n === 0
+                      ? "Sem acompanhantes"
+                      : `+${n} acompanhante${n > 1 ? "s" : ""}`}
+                  </option>
+                ))}
+              </select>
+              <label className="flex items-center gap-2 font-lato text-sm text-stone-600">
+                <input
+                  type="checkbox"
+                  checked={novoConvidado.confirmado}
+                  onChange={(e) =>
+                    setNovoConvidado({
+                      ...novoConvidado,
+                      confirmado: e.target.checked,
+                    })
+                  }
+                />
+                Já confirmado
+              </label>
+            </div>
+            <button
+              onClick={adicionarConvidado}
+              className="mt-4 px-6 py-2 bg-stone-700 text-stone-50 font-lato text-xs tracking-widest uppercase hover:bg-stone-800 transition-colors"
+            >
+              Adicionar
+            </button>
+          </div>
+
+          <p className="font-lato text-sm text-stone-400 mb-4">
             {convidados.length} convidado{convidados.length !== 1 ? "s" : ""}{" "}
             cadastrado{convidados.length !== 1 ? "s" : ""}
           </p>
