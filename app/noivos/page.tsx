@@ -14,6 +14,7 @@ type Convidado = {
   telefone: string;
   confirmado: boolean;
   acompanhantes: number;
+  nomes_acompanhantes: string;
   mensagem: string;
   created_at: string;
 };
@@ -47,13 +48,14 @@ export default function Noivos() {
     email: "",
     telefone: "",
     acompanhantes: 0,
+    nomes_acompanhantes: [] as string[],
     confirmado: true,
   });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
 
   const recarregar = useCallback(async () => {
-    const [{ data: c, error: ec }, { data: p, error: ep }] = await Promise.all([
+    const [{ data: c }, { data: p }] = await Promise.all([
       supabase
         .from("convidados")
         .select("*")
@@ -63,8 +65,6 @@ export default function Noivos() {
         .select("*")
         .order("created_at", { ascending: false }),
     ]);
-    console.log("convidados:", c, "erro:", ec);
-    console.log("presentes:", p, "erro:", ep);
     setConvidados(c || []);
     setPresentes(p || []);
   }, []);
@@ -85,6 +85,23 @@ export default function Noivos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
+  function setQtdAcomp(n: number) {
+    const arr = Array(n)
+      .fill("")
+      .map((_, i) => novoConvidado.nomes_acompanhantes[i] || "");
+    setNovoConvidado({
+      ...novoConvidado,
+      acompanhantes: n,
+      nomes_acompanhantes: arr,
+    });
+  }
+
+  function setNomeAcomp(i: number, val: string) {
+    const arr = [...novoConvidado.nomes_acompanhantes];
+    arr[i] = val;
+    setNovoConvidado({ ...novoConvidado, nomes_acompanhantes: arr });
+  }
+
   async function salvarConfig() {
     setSalvando(true);
     for (const [chave, valor] of Object.entries(config)) {
@@ -97,9 +114,15 @@ export default function Noivos() {
 
   async function adicionarConvidado() {
     if (!novoConvidado.nome) return;
+    const payload = {
+      ...novoConvidado,
+      nomes_acompanhantes: novoConvidado.nomes_acompanhantes
+        .filter(Boolean)
+        .join(", "),
+    };
     const { data } = await supabase
       .from("convidados")
-      .insert([novoConvidado])
+      .insert([payload])
       .select();
     if (data) setConvidados((prev) => [data[0], ...prev]);
     setNovoConvidado({
@@ -107,6 +130,7 @@ export default function Noivos() {
       email: "",
       telefone: "",
       acompanhantes: 0,
+      nomes_acompanhantes: [],
       confirmado: true,
     });
   }
@@ -134,6 +158,41 @@ export default function Noivos() {
   async function removerConvidado(id: string) {
     await supabase.from("convidados").delete().eq("id", id);
     setConvidados((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function exportarCSV() {
+    const headers = [
+      "Nome",
+      "Email",
+      "Telefone",
+      "Confirmado",
+      "Acompanhantes",
+      "Nomes Acompanhantes",
+      "Mensagem",
+      "Data",
+    ];
+    const rows = convidados.map((c) => [
+      c.nome,
+      c.email || "",
+      c.telefone || "",
+      c.confirmado ? "Sim" : "Não",
+      c.acompanhantes,
+      c.nomes_acompanhantes || "",
+      c.mensagem || "",
+      new Date(c.created_at).toLocaleDateString("pt-BR"),
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${v}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "convidados.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   if (!authed) {
@@ -215,10 +274,14 @@ export default function Noivos() {
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
           { label: "Confirmados", value: confirmados.length },
           { label: "Total de pessoas", value: totalPessoas },
+          {
+            label: "Pendentes",
+            value: convidados.filter((c) => !c.confirmado).length,
+          },
           { label: "Presentes", value: presentes.length },
         ].map((s) => (
           <div
@@ -306,6 +369,7 @@ export default function Noivos() {
       {/* Convidados */}
       {aba === "convidados" && (
         <div>
+          {/* Form adicionar */}
           <div className="border border-stone-200 p-6 mb-8">
             <p className="font-lato text-xs tracking-widest uppercase text-stone-400 mb-4">
               Adicionar convidado
@@ -340,13 +404,8 @@ export default function Noivos() {
               />
               <select
                 value={novoConvidado.acompanhantes}
-                onChange={(e) =>
-                  setNovoConvidado({
-                    ...novoConvidado,
-                    acompanhantes: Number(e.target.value),
-                  })
-                }
-                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-stone-50"
+                onChange={(e) => setQtdAcomp(Number(e.target.value))}
+                className="border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-stone-50 col-span-2"
               >
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
@@ -356,7 +415,30 @@ export default function Noivos() {
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 font-lato text-sm text-stone-600">
+
+              {/* Nomes dos acompanhantes */}
+              {novoConvidado.acompanhantes > 0 && (
+                <div className="col-span-2 space-y-2">
+                  <p className="font-lato text-xs tracking-widest uppercase text-stone-400">
+                    Nomes dos acompanhantes
+                  </p>
+                  {novoConvidado.nomes_acompanhantes.map((n, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="font-lato text-xs text-stone-400 w-5">
+                        {i + 1}.
+                      </span>
+                      <input
+                        value={n}
+                        onChange={(e) => setNomeAcomp(i, e.target.value)}
+                        placeholder={`Acompanhante ${i + 1}`}
+                        className="flex-1 border border-stone-200 px-4 py-2 font-lato text-sm text-stone-700 focus:outline-none bg-transparent"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 font-lato text-sm text-stone-600 col-span-2">
                 <input
                   type="checkbox"
                   checked={novoConvidado.confirmado}
@@ -378,42 +460,69 @@ export default function Noivos() {
             </button>
           </div>
 
-          <p className="font-lato text-sm text-stone-400 mb-4">
-            {convidados.length} convidado{convidados.length !== 1 ? "s" : ""}{" "}
-            cadastrado{convidados.length !== 1 ? "s" : ""}
-          </p>
+          {/* Header lista */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-lato text-sm text-stone-400">
+              {convidados.length} convidado{convidados.length !== 1 ? "s" : ""}{" "}
+              · {totalPessoas} pessoas no total
+            </p>
+            <button
+              onClick={exportarCSV}
+              className="font-lato text-xs tracking-widest uppercase text-stone-500 border border-stone-200 px-4 py-2 hover:border-stone-400 transition-colors"
+            >
+              ↓ Exportar CSV
+            </button>
+          </div>
+
+          {/* Lista */}
           <div className="space-y-2">
             {convidados.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center justify-between border border-stone-200 px-6 py-4"
-              >
-                <div>
-                  <p className="font-lato text-stone-700 font-medium">
-                    {c.nome}
-                  </p>
-                  <p className="font-lato text-xs text-stone-400">
-                    {c.email} {c.telefone && `· ${c.telefone}`}{" "}
-                    {c.acompanhantes > 0 && `· +${c.acompanhantes} acomp.`}
-                  </p>
-                  {c.mensagem && (
-                    <p className="font-lato text-xs text-stone-400 italic mt-1">
-                      {c.mensagem}
+              <div key={c.id} className="border border-stone-200 px-6 py-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-lato text-stone-700 font-medium">
+                      {c.nome}
                     </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`text-xs tracking-widest uppercase font-lato px-3 py-1 ${c.confirmado ? "bg-green-50 text-green-700" : "bg-stone-100 text-stone-400"}`}
-                  >
-                    {c.confirmado ? "Confirmado" : "Pendente"}
-                  </span>
-                  <button
-                    onClick={() => removerConvidado(c.id)}
-                    className="text-stone-300 hover:text-red-400 transition-colors text-lg"
-                  >
-                    ×
-                  </button>
+                    <p className="font-lato text-xs text-stone-400 mt-0.5">
+                      {c.email && `${c.email}`}
+                      {c.telefone && ` · ${c.telefone}`}
+                    </p>
+                    {c.acompanhantes > 0 && (
+                      <div className="mt-2">
+                        <p className="font-lato text-xs text-stone-500">
+                          +{c.acompanhantes} acompanhante
+                          {c.acompanhantes > 1 ? "s" : ""}
+                          {c.nomes_acompanhantes && (
+                            <span className="text-stone-400">
+                              {" "}
+                              — {c.nomes_acompanhantes}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {c.mensagem && (
+                      <p className="font-lato text-xs text-stone-400 italic mt-1">
+                        {c.mensagem}
+                      </p>
+                    )}
+                    <p className="font-lato text-xs text-stone-300 mt-1">
+                      {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span
+                      className={`text-xs tracking-widest uppercase font-lato px-3 py-1 flex-shrink-0 ${c.confirmado ? "bg-green-50 text-green-700" : "bg-stone-100 text-stone-400"}`}
+                    >
+                      {c.confirmado ? "Confirmado" : "Pendente"}
+                    </span>
+                    <button
+                      onClick={() => removerConvidado(c.id)}
+                      className="text-stone-300 hover:text-red-400 transition-colors text-lg flex-shrink-0"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
