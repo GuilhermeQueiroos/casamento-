@@ -54,6 +54,10 @@ export default function Noivos() {
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
 
+  useEffect(() => {
+    if (sessionStorage.getItem("noivos_authed") === "1") setAuthed(true);
+  }, []);
+
   const recarregar = useCallback(async () => {
     const [{ data: c }, { data: p }] = await Promise.all([
       supabase
@@ -220,7 +224,7 @@ export default function Noivos() {
             onKeyDown={(e) =>
               e.key === "Enter" &&
               (senha === SENHA_ADMIN
-                ? setAuthed(true)
+                ? (sessionStorage.setItem("noivos_authed", "1"), setAuthed(true))
                 : alert("Senha incorreta"))
             }
             placeholder="Senha"
@@ -228,7 +232,9 @@ export default function Noivos() {
           />
           <button
             onClick={() =>
-              senha === SENHA_ADMIN ? setAuthed(true) : alert("Senha incorreta")
+              senha === SENHA_ADMIN
+                ? (sessionStorage.setItem("noivos_authed", "1"), setAuthed(true))
+                : alert("Senha incorreta")
             }
             className="w-full py-3 bg-stone-700 text-stone-50 font-lato text-sm tracking-widest uppercase hover:bg-stone-800 transition-colors"
           >
@@ -266,7 +272,7 @@ export default function Noivos() {
           </button>
         </div>
         <button
-          onClick={() => setAuthed(false)}
+          onClick={() => { sessionStorage.removeItem("noivos_authed"); setAuthed(false); }}
           className="text-xs text-stone-400 hover:text-stone-600 tracking-widest uppercase"
         >
           Sair
@@ -297,20 +303,28 @@ export default function Noivos() {
       </div>
 
       {/* Abas */}
-      <div className="flex gap-6 border-b border-stone-200 mb-8">
-        {(["config", "convidados", "presentes"] as const).map((a) => (
-          <button
-            key={a}
-            onClick={() => setAba(a)}
-            className={`pb-3 font-lato text-xs tracking-widest uppercase transition-colors ${aba === a ? "text-stone-700 border-b-2 border-stone-700" : "text-stone-400 hover:text-stone-600"}`}
-          >
-            {a === "config"
-              ? "Configurações"
-              : a === "convidados"
-                ? "Convidados"
-                : "Presentes"}
-          </button>
-        ))}
+      <div className="flex items-end justify-between border-b border-stone-200 mb-8">
+        <div className="flex gap-6">
+          {(["config", "convidados", "presentes"] as const).map((a) => (
+            <button
+              key={a}
+              onClick={() => setAba(a)}
+              className={`pb-3 font-lato text-xs tracking-widest uppercase transition-colors ${aba === a ? "text-stone-700 border-b-2 border-stone-700" : "text-stone-400 hover:text-stone-600"}`}
+            >
+              {a === "config"
+                ? "Configurações"
+                : a === "convidados"
+                  ? "Convidados"
+                  : "Presentes"}
+            </button>
+          ))}
+        </div>
+        <Link
+          href="/noivos/fotos"
+          className="pb-3 font-lato text-xs tracking-widest uppercase text-stone-400 hover:text-stone-600 transition-colors"
+        >
+          Fotos →
+        </Link>
       </div>
 
       {/* Config */}

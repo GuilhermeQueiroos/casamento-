@@ -1,22 +1,28 @@
 "use client";
 
 import Image from "next/image";
-
-// 💡 FUTURO: buscar fotos do Supabase Storage
-// import { supabase } from '@/lib/supabase'
-// As fotos ficam em: supabase storage → bucket "galeria"
-// Para adicionar: no admin, upload para o bucket e salvar a URL no banco
-// Para exibir: next/image com src={url} + animação de entrada com framer-motion
-
 import Navbar from "@/components/Navbar";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
-// 💡 Substituir por fotos reais vindas do Supabase Storage
-const fotos: { url: string; alt: string }[] = [
-  // Exemplo de como ficará:
-  // { url: 'https://...supabase.co/storage/v1/object/public/galeria/foto1.jpg', alt: 'Guilherme e Deborah' },
-];
+type Foto = { id: string; url: string; alt: string };
 
 export default function Galeria() {
+  const [fotos, setFotos] = useState<Foto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("fotos")
+      .select("id, url, alt, ordem")
+      .eq("secao", "galeria")
+      .order("ordem", { ascending: true })
+      .then(({ data }) => {
+        setFotos(data || []);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -28,8 +34,9 @@ export default function Galeria() {
           Galeria
         </h1>
 
-        {fotos.length === 0 ? (
-          // Estado vazio — aparece até as fotos serem adicionadas
+        {loading ? (
+          <p className="text-center font-lato text-stone-400">Carregando...</p>
+        ) : fotos.length === 0 ? (
           <div className="text-center py-24">
             <div className="flex items-center justify-center gap-4 mb-8">
               <div className="h-px w-16 bg-stone-200" />
@@ -44,18 +51,15 @@ export default function Galeria() {
             </p>
           </div>
         ) : (
-          // 💡 Grid de fotos — pronto para receber imagens reais
-          // Futuramente: adicionar framer-motion para animação de entrada
           <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
-            {fotos.map((foto, i) => (
+            {fotos.map((foto) => (
               <div
-                key={i}
+                key={foto.id}
                 className="break-inside-avoid overflow-hidden border border-stone-100 hover:border-stone-300 transition-colors"
-                // 💡 FUTURO: onClick para abrir lightbox
               >
                 <Image
                   src={foto.url}
-                  alt={foto.alt}
+                  alt={foto.alt || "Guilherme e Deborah"}
                   width={800}
                   height={600}
                   className="w-full object-cover hover:scale-105 transition-transform duration-500"
