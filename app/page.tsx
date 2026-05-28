@@ -85,7 +85,14 @@ export default function Home() {
         </div>
 
         <p className="font-lato text-stone-400 tracking-[0.3em] text-xs md:text-sm mt-6 mb-14">
-          26 · JULHO · 2025 — GOIÂNIA, GO
+          {new Date(dataCasamento).toLocaleDateString("pt-BR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }).replace(/^(\d+) de (\w+) de (\d+)$/, (_, d, m, y) =>
+            `${d} · ${m.toUpperCase()} · ${y}`
+          )}{" "}
+          — GOIÂNIA, GO
         </p>
 
         <Countdown targetDate={dataCasamento} />
