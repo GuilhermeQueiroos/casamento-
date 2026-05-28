@@ -11,8 +11,17 @@ type Foto = { id: string; url: string; alt: string; ordem: number };
 
 export default function Home() {
   const [fotos, setFotos] = useState<Foto[]>([]);
+  const [dataCasamento, setDataCasamento] = useState("2025-07-26T16:00:00");
 
   useEffect(() => {
+    supabase
+      .from("config")
+      .select("chave, valor")
+      .eq("chave", "data_casamento")
+      .single()
+      .then(({ data }) => {
+        if (data?.valor) setDataCasamento(data.valor);
+      });
     supabase
       .from("fotos")
       .select("id, url, alt, ordem")
@@ -79,7 +88,7 @@ export default function Home() {
           26 · JULHO · 2025 — GOIÂNIA, GO
         </p>
 
-        <Countdown targetDate="2025-07-26T16:00:00" />
+        <Countdown targetDate={dataCasamento} />
 
         <div className="flex flex-row gap-3 mt-12 mx-auto">
           <Link

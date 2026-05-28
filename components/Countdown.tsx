@@ -25,12 +25,28 @@ export default function Countdown({ targetDate }: { targetDate: string }) {
     return () => clearInterval(interval);
   }, [targetDate]);
 
+  const passed =
+    new Date(targetDate).getTime() - Date.now() <= 0;
+
   const items = [
     { value: timeLeft.days, label: "Dias" },
     { value: timeLeft.hours, label: "Horas" },
     { value: timeLeft.minutes, label: "Min" },
     { value: timeLeft.seconds, label: "Seg" },
   ];
+
+  if (passed) {
+    return (
+      <div className="text-center">
+        <p className="font-playfair text-4xl md:text-5xl text-stone-700 italic">
+          Já somos casados
+        </p>
+        <p className="font-lato text-xs tracking-[0.4em] uppercase text-stone-400 mt-3">
+          ✦
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-8 md:gap-12">
