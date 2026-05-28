@@ -5,7 +5,7 @@ import Countdown from "@/components/Countdown";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase";
 
 type Foto = { id: string; url: string; alt: string; ordem: number };
 
@@ -13,7 +13,6 @@ export default function Home() {
   const [fotos, setFotos] = useState<Foto[]>([]);
 
   useEffect(() => {
-    const supabase = createClient();
     supabase
       .from("fotos")
       .select("id, url, alt, ordem")
