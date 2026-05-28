@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Navbar from "@/components/Navbar";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
